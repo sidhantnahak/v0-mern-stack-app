@@ -1,11 +1,19 @@
 const Task = require('../models/Task');
+const mockDB = require('../config/mockDB');
 
 // @desc    Get all tasks
 // @route   GET /api/tasks
 // @access  Public
 exports.getTasks = async (req, res) => {
   try {
-    const tasks = await Task.find().sort({ createdAt: -1 });
+    let tasks;
+    
+    if (process.env.USE_MOCK_DB === 'true') {
+      tasks = mockDB.getAllTasks().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    } else {
+      tasks = await Task.find().sort({ createdAt: -1 });
+    }
+    
     res.status(200).json({
       success: true,
       count: tasks.length,
@@ -24,7 +32,14 @@ exports.getTasks = async (req, res) => {
 // @access  Public
 exports.getTask = async (req, res) => {
   try {
-    const task = await Task.findById(req.params.id);
+    let task;
+    
+    if (process.env.USE_MOCK_DB === 'true') {
+      task = mockDB.getTaskById(req.params.id);
+    } else {
+      task = await Task.findById(req.params.id);
+    }
+    
     if (!task) {
       return res.status(404).json({
         success: false,
@@ -57,12 +72,23 @@ exports.createTask = async (req, res) => {
       });
     }
 
-    const task = await Task.create({
-      title,
-      description,
-      status,
-      priority
-    });
+    let task;
+    
+    if (process.env.USE_MOCK_DB === 'true') {
+      task = mockDB.createTask({
+        title,
+        description: description || '',
+        status: status || 'todo',
+        priority: priority || 'medium'
+      });
+    } else {
+      task = await Task.create({
+        title,
+        description,
+        status,
+        priority
+      });
+    }
 
     res.status(201).json({
       success: true,
@@ -81,23 +107,34 @@ exports.createTask = async (req, res) => {
 // @access  Public
 exports.updateTask = async (req, res) => {
   try {
-    let task = await Task.findById(req.params.id);
-
-    if (!task) {
-      return res.status(404).json({
-        success: false,
-        error: 'Task not found'
-      });
-    }
-
-    task = await Task.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      {
-        new: true,
-        runValidators: true
+    let task;
+    
+    if (process.env.USE_MOCK_DB === 'true') {
+      task = mockDB.getTaskById(req.params.id);
+      if (!task) {
+        return res.status(404).json({
+          success: false,
+          error: 'Task not found'
+        });
       }
-    );
+      task = mockDB.updateTask(req.params.id, req.body);
+    } else {
+      task = await Task.findById(req.params.id);
+      if (!task) {
+        return res.status(404).json({
+          success: false,
+          error: 'Task not found'
+        });
+      }
+      task = await Task.findByIdAndUpdate(
+        req.params.id,
+        req.body,
+        {
+          new: true,
+          runValidators: true
+        }
+      );
+    }
 
     res.status(200).json({
       success: true,
@@ -116,7 +153,13 @@ exports.updateTask = async (req, res) => {
 // @access  Public
 exports.deleteTask = async (req, res) => {
   try {
-    const task = await Task.findByIdAndDelete(req.params.id);
+    let task;
+    
+    if (process.env.USE_MOCK_DB === 'true') {
+      task = mockDB.deleteTask(req.params.id);
+    } else {
+      task = await Task.findByIdAndDelete(req.params.id);
+    }
 
     if (!task) {
       return res.status(404).json({

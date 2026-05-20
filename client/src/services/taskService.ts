@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { Task } from '../redux/slices/taskSlice';
 
-const API_BASE_URL = '/api';
+const API_BASE_URL = 'http://localhost:5001/api';
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
